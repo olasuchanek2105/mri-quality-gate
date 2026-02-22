@@ -5,7 +5,7 @@ from pathlib import Path
 from src.artifacts.noise import add_gaussian_noise, NoiseParams
 from src.dicom.io import load_dicom_as_float01
 from src.dicom.io import load_analyze_slice_float01
-
+from src.artifacts.blur import apply_random_blur
 
 def collect_analyze_img_paths(data_root: str | Path) -> List[Path]:
     data_root = Path(data_root)
@@ -23,9 +23,17 @@ def make_one_example(dcm_path: Path, rng=None):
     img = load_analyze_slice_float01(dcm_path)  # tu dcm_path to teraz .img path
 
 
-    noisy_img, meta = apply_random_gaussian_noise(img, rng=rng)
-    return img, noisy_img, meta
+    # noisy_img, meta = apply_random_gaussian_noise(img, rng=rng)
+    # noisy_img, meta = apply_random_blur(img, rng=rng)
+    
+    artifact = "blur"  # albo "noise"
 
+    if artifact == "noise":
+        noisy_img, meta = apply_random_gaussian_noise(img, rng=rng)
+    elif artifact == "blur":
+        noisy_img, meta = apply_random_blur(img, rng=rng)
+        
+    return img, noisy_img, meta
 
 def sample_sigma_for_quality(
     quality: str,
@@ -87,17 +95,27 @@ if __name__ == "__main__":
 
     rng = np.random.default_rng(42)
 
-    for i in range(3):
-        dcm_path = paths[i]
+for i in range(3):
+    dcm_path = paths[i]
 
-        img, noisy, meta = make_one_example(dcm_path, rng=rng)
+    img, noisy, meta = make_one_example(dcm_path, rng=rng)
 
-        print(meta)
+    print(meta)
 
-        fig, axs = plt.subplots(1, 2)
-        axs[0].imshow(img, cmap="gray")
-        axs[0].set_title("clean")
-        axs[1].imshow(noisy, cmap="gray")
-        axs[1].set_title("noisy")
+    diff = np.abs(noisy - img)
 
-        plt.show()
+    fig, axs = plt.subplots(1, 3, figsize=(12,4))
+
+    axs[0].imshow(img, cmap="gray", vmin=0, vmax=1)
+    axs[0].set_title("clean")
+
+    axs[1].imshow(noisy, cmap="gray", vmin=0, vmax=1)
+    axs[1].set_title("noisy")
+
+    axs[2].imshow(diff, cmap="gray")
+    axs[2].set_title("abs diff")
+
+    for ax in axs:
+        ax.axis("off")
+
+    plt.show()
