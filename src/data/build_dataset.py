@@ -6,6 +6,7 @@ from src.artifacts.noise import add_gaussian_noise, NoiseParams
 from src.dicom.io import load_dicom_as_float01
 from src.dicom.io import load_analyze_slice_float01
 from src.artifacts.blur import apply_random_blur
+from src.artifacts.noise import apply_random_gaussian_noise
 
 def collect_analyze_img_paths(data_root: str | Path) -> List[Path]:
     data_root = Path(data_root)
@@ -26,7 +27,7 @@ def make_one_example(dcm_path: Path, rng=None):
     # noisy_img, meta = apply_random_gaussian_noise(img, rng=rng)
     # noisy_img, meta = apply_random_blur(img, rng=rng)
     
-    artifact = "blur"  # albo "noise"
+    artifact = "noise"  # albo "noise"
 
     if artifact == "noise":
         noisy_img, meta = apply_random_gaussian_noise(img, rng=rng)
@@ -35,50 +36,7 @@ def make_one_example(dcm_path: Path, rng=None):
         
     return img, noisy_img, meta
 
-def sample_sigma_for_quality(
-    quality: str,
-    rng: np.random.Generator,
-) -> float:
-    """
-    Sample sigma based on a desired quality class.
-    Assumes images are normalized to [0, 1].
-    """
-    if quality == "ok":
-        return float(rng.uniform(0.0, 0.01))
-    if quality == "borderline":
-        return float(rng.uniform(0.02, 0.05))
-    if quality == "reject":
-        return float(rng.uniform(0.06, 0.12))
-    raise ValueError("quality must be one of: ok, borderline, reject")
 
-
-def apply_random_gaussian_noise(
-    img: np.ndarray,
-    rng: Optional[np.random.Generator] = None,
-) -> Tuple[np.ndarray, Dict]:
-    """
-    Apply Gaussian noise with a randomly chosen quality class.
-    Returns (noisy_img, metadata_dict).
-    """
-    rng = rng or np.random.default_rng()
-
-    # 1) losujemy klasę jakości (możesz zmienić proporcje)
-    quality = rng.choice(["ok", "borderline", "reject"], p=[0.5, 0.3, 0.2])
-
-    # 2) losujemy sigma zależnie od klasy
-    sigma = sample_sigma_for_quality(quality, rng)
-
-    # 3) aplikujemy noise
-    noisy_img, params = add_gaussian_noise(img, sigma, rng=rng, clip=True)
-
-    # 4) metadane do labels.csv
-    meta = {
-        "artifact_type": "noise",
-        "noise_type": params.noise_type,
-        "sigma": params.sigma,
-        "quality": quality,
-    }
-    return noisy_img, meta
 
 
 
