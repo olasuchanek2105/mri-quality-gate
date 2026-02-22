@@ -1,12 +1,14 @@
 from typing import Optional, Tuple, Dict, List
 import numpy as np
 from pathlib import Path
+from matplotlib import pyplot as plt
 
 from src.artifacts.noise import add_gaussian_noise, NoiseParams
 from src.dicom.io import load_dicom_as_float01
 from src.dicom.io import load_analyze_slice_float01
 from src.artifacts.blur import apply_random_blur
 from src.artifacts.noise import apply_random_gaussian_noise
+from src.artifacts.bias_field import apply_random_bias_field
 
 def collect_analyze_img_paths(data_root: str | Path) -> List[Path]:
     data_root = Path(data_root)
@@ -20,32 +22,26 @@ def collect_analyze_img_paths(data_root: str | Path) -> List[Path]:
 
 def make_one_example(dcm_path: Path, rng=None):
     rng = rng or np.random.default_rng()
-    # img = load_dicom_as_float01(dcm_path)
-    img = load_analyze_slice_float01(dcm_path)  # tu dcm_path to teraz .img path
-
-
-    # noisy_img, meta = apply_random_gaussian_noise(img, rng=rng)
-    # noisy_img, meta = apply_random_blur(img, rng=rng)
+    img = load_analyze_slice_float01(dcm_path)  
     
-    artifact = "noise"  # albo "noise"
+    artifact = "bias_field"  # albo "noise"
 
     if artifact == "noise":
         noisy_img, meta = apply_random_gaussian_noise(img, rng=rng)
     elif artifact == "blur":
         noisy_img, meta = apply_random_blur(img, rng=rng)
-        
+    elif artifact =="bias_field": 
+        noisy_img, meta = apply_random_bias_field(img, rng=rng)
+
     return img, noisy_img, meta
 
 
 
 
-
-
-
-#tymczasowo
+#tymczasowo sprawdzenie
 
 if __name__ == "__main__":
-    from matplotlib import pyplot as plt
+    
 
     paths = collect_analyze_img_paths("data")
     print(f"Found {len(paths)} ANALYZE .img files")
@@ -76,4 +72,9 @@ for i in range(3):
     for ax in axs:
         ax.axis("off")
 
+    # plt.show()
+    ratio = noisy / (img + 1e-8)
+    plt.imshow(ratio, cmap="gray")
+    plt.title("bias field")
+    plt.colorbar()
     plt.show()
